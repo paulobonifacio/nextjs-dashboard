@@ -1,5 +1,6 @@
-import type { NextAuthConfig } from 'next-auth';
- 
+// auth.config.ts
+import type { AuthConfig } from '@auth/core'; // <-- ALTERAÇÃO AQUI: Importa AuthConfig de @auth/core
+
 export const authConfig = {
   pages: {
     signIn: '/login',
@@ -17,5 +18,5 @@ export const authConfig = {
       return true;
     },
   },
-  providers: [],
-} satisfies NextAuthConfig;
+  providers: [], // Mantenha esta linha se estiver usando um array vazio para provedores
+} satisfies AuthConfig; // <-- ALTERAÇÃO AQUI: Garante que o objeto satisfaça o tipo AuthConfig
