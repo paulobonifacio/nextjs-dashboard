@@ -1,7 +1,8 @@
 import { Metadata } from 'next';
+import { Suspense } from 'react';
+
 import { fetchInvoicesPages } from '@/app/lib/data';
 import { lusitana } from '@/app/ui/fonts';
-import { Suspense } from 'react';
 import { InvoicesTableSkeleton } from '@/app/ui/skeletons';
 import Pagination from '@/app/ui/invoices/pagination';
 import Search from '@/app/ui/search';
@@ -12,16 +13,20 @@ export const metadata: Metadata = {
   title: 'Invoices',
 };
 
-//01//
-
+// Componente de página principal para faturas
 export default async function Page({
   searchParams,
 }: {
-  searchParams?: Record<string, string | string[] | undefined>;
+  searchParams?: {
+    query?: string;
+    page?: string;
+  };
 }) {
+  // Extrai 'query' e 'page' dos searchParams, garantindo que são strings e números
   const query = typeof searchParams?.query === 'string' ? searchParams.query : '';
-  const page = typeof searchParams?.page === 'string' ? Number(searchParams.page) : 1;
+  const currentPage = typeof searchParams?.page === 'string' ? Number(searchParams.page) : 1;
 
+  // Busca o total de páginas de faturas com base na query
   const totalPages = await fetchInvoicesPages(query);
 
   return (
@@ -34,10 +39,12 @@ export default async function Page({
         <CreateInvoice />
       </div>
 
-      <Suspense key={query + page} fallback={<InvoicesTableSkeleton />}>
-        <Table query={query} currentPage={page} />
+      {/* Exibe a tabela de faturas com um fallback de carregamento */}
+      <Suspense key={query + currentPage} fallback={<InvoicesTableSkeleton />}>
+        <Table query={query} currentPage={currentPage} />
       </Suspense>
 
+      {/* Componente de paginação */}
       <div className="mt-5 flex w-full justify-center">
         <Pagination totalPages={totalPages} />
       </div>
