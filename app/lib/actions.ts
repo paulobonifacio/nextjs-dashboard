@@ -3,8 +3,8 @@ import { z } from 'zod';
 import postgres from 'postgres'; 
 import { revalidatePath } from 'next/cache';
 import { signIn } from '@/auth';
-// A linha abaixo foi alterada para importar AuthError do local correto.
-import { AuthError } from 'next-auth/errors'; // <-- ALTERAÇÃO AQUI: Importa de 'next-auth/errors'
+// A linha abaixo foi alterada para importar AuthError do local correto e mais fundamental.
+import { AuthError } from '@auth/core/errors'; // <-- A ÚLTIMA E MAIS PROVÁVEL CORREÇÃO AQUI!
 import { redirect } from 'next/navigation';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
