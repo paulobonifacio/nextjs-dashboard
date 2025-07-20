@@ -10,7 +10,9 @@ import {
 import Link from 'next/link';
 import { Button } from '@/app/ui/button';
 import { updateInvoice, State } from '@/app/lib/actions';
-import { useActionState } from 'react';
+// Importamos 'useState' do React
+import { useState } from 'react'; // <-- ALTERAÇÃO AQUI
+
 export default function EditInvoiceForm({
   invoice,
   customers,
@@ -18,11 +20,24 @@ export default function EditInvoiceForm({
   invoice: InvoiceForm;
   customers: CustomerField[];
 }) {
-  const initialState: State = { message: null, errors: {} };
+  // Estado para gerenciar mensagens e erros do formulário
+  const [state, setState] = useState<State>({ message: null, errors: {} }); // <-- ALTERAÇÃO AQUI
+  
+  // Ação de atualização vinculada ao ID da fatura
   const updateInvoiceWithId = updateInvoice.bind(null, invoice.id);
-  const [state, formAction] = useActionState(updateInvoiceWithId, initialState);
+
+  // Função que será chamada quando o formulário for submetido
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => { // <-- ALTERAÇÃO AQUI
+    event.preventDefault(); // Previne o comportamento padrão do formulário
+    const formData = new FormData(event.currentTarget); // Obtém os dados do formulário
+
+    // Chama a Server Action e atualiza o estado
+    const result = await updateInvoiceWithId(state, formData); // <-- ALTERAÇÃO AQUI: Passa o estado atual e formData
+    setState(result); // Atualiza o estado com o retorno da ação
+  };
+
   return (
-   <form action={formAction}>
+    <form onSubmit={handleSubmit}> {/* <-- ALTERAÇÃO AQUI: Mudança de 'action' para 'onSubmit' */}
       <div className="rounded-md bg-gray-50 p-4 md:p-6">
         {/* Customer Name */}
         <div className="mb-4">
@@ -35,6 +50,7 @@ export default function EditInvoiceForm({
               name="customerId"
               className="peer block w-full cursor-pointer rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
               defaultValue={invoice.customer_id}
+              aria-describedby="customer-error" // Adicionado para acessibilidade de erro
             >
               <option value="" disabled>
                 Select a customer
@@ -47,6 +63,13 @@ export default function EditInvoiceForm({
             </select>
             <UserCircleIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500" />
           </div>
+          {/* Exibição de erros para customerId */}
+          {state.errors?.customerId &&
+            state.errors.customerId.map((error: string) => (
+              <p className="mt-2 text-sm text-red-500" key={error}>
+                {error}
+              </p>
+            ))}
         </div>
 
         {/* Invoice Amount */}
@@ -64,10 +87,18 @@ export default function EditInvoiceForm({
                 defaultValue={invoice.amount}
                 placeholder="Enter USD amount"
                 className="peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
+                aria-describedby="amount-error" // Adicionado para acessibilidade de erro
               />
               <CurrencyDollarIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500 peer-focus:text-gray-900" />
             </div>
           </div>
+          {/* Exibição de erros para amount */}
+          {state.errors?.amount &&
+            state.errors.amount.map((error: string) => (
+              <p className="mt-2 text-sm text-red-500" key={error}>
+                {error}
+              </p>
+            ))}
         </div>
 
         {/* Invoice Status */}
@@ -75,7 +106,10 @@ export default function EditInvoiceForm({
           <legend className="mb-2 block text-sm font-medium">
             Set the invoice status
           </legend>
-          <div className="rounded-md border border-gray-200 bg-white px-[14px] py-3">
+          <div
+            className="rounded-md border border-gray-200 bg-white px-[14px] py-3"
+            aria-describedby="status-error" // Adicionado para acessibilidade de erro
+          >
             <div className="flex gap-4">
               <div className="flex items-center">
                 <input
@@ -111,7 +145,18 @@ export default function EditInvoiceForm({
               </div>
             </div>
           </div>
+          {/* Exibição de erros para status */}
+          {state.errors?.status &&
+            state.errors.status.map((error: string) => (
+              <p className="mt-2 text-sm text-red-500" key={error}>
+                {error}
+              </p>
+            ))}
         </fieldset>
+        {/* Mensagem de erro geral do formulário */}
+        {state.message && (
+          <div className="mt-2 text-sm text-red-500">{state.message}</div>
+        )}
       </div>
       <div className="mt-6 flex justify-end gap-4">
         <Link

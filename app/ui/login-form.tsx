@@ -1,5 +1,5 @@
 'use client';
- 
+
 import { lusitana } from '@/app/ui/fonts';
 import {
   AtSymbolIcon,
@@ -8,20 +8,38 @@ import {
 } from '@heroicons/react/24/outline';
 import { ArrowRightIcon } from '@heroicons/react/20/solid';
 import { Button } from '@/app/ui/button';
-import { useActionState } from 'react';
+// Importamos 'useState' do React
+import { useState } from 'react'; // <-- ALTERAÇÃO AQUI
 import { authenticate } from '@/app/lib/actions';
 import { useSearchParams } from 'next/navigation';
- 
+
 export default function LoginForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
-  const [errorMessage, formAction, isPending] = useActionState(
-    authenticate,
-    undefined,
-  );
- 
+
+  // Usamos useState para gerenciar a mensagem de erro e o estado de carregamento
+  const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined); // <-- ALTERAÇÃO AQUI
+  const [isPending, setIsPending] = useState(false); // <-- ALTERAÇÃO AQUI para controlar o loading do botão
+
+  // Função que será chamada quando o formulário for submetido
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => { // <-- ALTERAÇÃO AQUI
+    event.preventDefault(); // Previne o comportamento padrão do formulário
+    setIsPending(true); // Define o estado de carregamento como verdadeiro
+
+    const formData = new FormData(event.currentTarget); // Obtém os dados do formulário
+
+    // Chama a Server Action e atualiza o estado da mensagem de erro
+    const result = await authenticate(undefined, formData); // <-- ALTERAÇÃO AQUI: Passa undefined para o primeiro argumento (estado)
+    if (result && typeof result === 'string') { // Verifica se há uma mensagem de erro
+      setErrorMessage(result);
+    } else {
+      setErrorMessage(undefined); // Limpa a mensagem de erro se não houver
+    }
+    setIsPending(false); // Define o estado de carregamento como falso após a ação
+  };
+
   return (
-    <form action={formAction} className="space-y-3">
+    <form onSubmit={handleSubmit} className="space-y-3"> {/* <-- ALTERAÇÃO AQUI: Mudança de 'action' para 'onSubmit' */}
       <div className="flex-1 rounded-lg bg-gray-50 px-6 pb-4 pt-8">
         <h1 className={`${lusitana.className} mb-3 text-2xl`}>
           Please log in to continue.
@@ -67,6 +85,7 @@ export default function LoginForm() {
             </div>
           </div>
         </div>
+        {/* Adiciona o campo hidden para o redirectTo */}
         <input type="hidden" name="redirectTo" value={callbackUrl} />
         <Button className="mt-4 w-full" aria-disabled={isPending}>
           Log in <ArrowRightIcon className="ml-auto h-5 w-5 text-gray-50" />

@@ -10,14 +10,25 @@ import {
 } from '@heroicons/react/24/outline';
 import { Button } from '@/app/ui/button';
 import { createInvoice, State } from '@/app/lib/actions';
-import { useActionState } from 'react';
+// Importamos 'useState' do React
+import { useState } from 'react'; // <-- ALTERAÇÃO AQUI
 
 export default function Form({ customers }: { customers: CustomerField[] }) {
-  const initialState: State = { message: null, errors: {} };
-  const [state, formAction] = useActionState(createInvoice, initialState);
+  // Estado para gerenciar mensagens e erros do formulário
+  const [state, setState] = useState<State>({ message: null, errors: {} }); // <-- ALTERAÇÃO AQUI
+  
+  // Função que será chamada quando o formulário for submetido
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => { // <-- ALTERAÇÃO AQUI
+    event.preventDefault(); // Previne o comportamento padrão do formulário
+    const formData = new FormData(event.currentTarget); // Obtém os dados do formulário
+
+    // Chama a Server Action e atualiza o estado
+    const result = await createInvoice(state, formData); // <-- ALTERAÇÃO AQUI: Passa o estado atual e formData
+    setState(result); // Atualiza o estado com o retorno da ação
+  };
 
   return (
-    <form action={formAction}>
+    <form onSubmit={handleSubmit}> {/* <-- ALTERAÇÃO AQUI: Mudança de 'action' para 'onSubmit' */}
       <div className="rounded-md bg-gray-50 p-4 md:p-6">
         {/* Customer Field */}
         <div className="mb-4">
@@ -124,13 +135,12 @@ export default function Form({ customers }: { customers: CustomerField[] }) {
                 {error}
               </p>
             ))}
-            {state.message && (
-              <div className="mt-2 text-sm text-red-500">{state.message}</div>
-            )}
         </fieldset>
+        {/* Mensagem de erro geral do formulário (fora da fieldset, para clareza) */}
+        {state.message && ( // <-- ALTERAÇÃO AQUI: Movido para fora da fieldset para melhor organização
+          <div className="mt-2 text-sm text-red-500">{state.message}</div>
+        )}
       </div>
-
-    
 
       {/* Buttons */}
       <div className="mt-6 flex justify-end gap-4">
