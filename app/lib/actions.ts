@@ -3,9 +3,12 @@ import { z } from 'zod';
 import postgres from 'postgres'; 
 import { revalidatePath } from 'next/cache';
 import { signIn } from '@/auth';
-import { AuthError } from 'next-auth';
+// A linha abaixo foi alterada para importar AuthError do local correto.
+import { AuthError } from 'next-auth/errors'; // <-- ALTERAÇÃO AQUI: Importa de 'next-auth/errors'
 import { redirect } from 'next/navigation';
+
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+
 export type State = {
   errors?: {
     customerId?: string[];
@@ -14,6 +17,7 @@ export type State = {
   };
   message?: string | null;
 };
+
 const FormSchema = z.object({
   id: z.string(),
   customerId: z.string({
@@ -29,6 +33,7 @@ const FormSchema = z.object({
 });
  
 const CreateInvoice = FormSchema.omit({ id: true, date: true });
+
 export async function createInvoice(prevState: State, formData: FormData) {
   const validatedFields = CreateInvoice.safeParse({
     customerId: formData.get('customerId'),
@@ -57,7 +62,9 @@ export async function createInvoice(prevState: State, formData: FormData) {
   revalidatePath('/dashboard/invoices');
   redirect('/dashboard/invoices');
 }
+
 const UpdateInvoice = FormSchema.omit({ id: true, date: true });
+
 export async function updateInvoice(
   id: string,
   prevState: State,
@@ -105,6 +112,7 @@ export async function deleteInvoice(id: string) {
     throw new Error('Failed to delete invoice: ' + (error as Error).message);
   }
 }
+
 export async function authenticate(
   prevState: string | undefined,
   formData: FormData,
