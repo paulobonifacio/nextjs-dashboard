@@ -12,11 +12,11 @@ export const metadata: Metadata = {
   title: 'Invoices',
 };
 
-interface PageProps {
+export default async function Page({
+  searchParams,
+}: {
   searchParams?: Record<string, string | string[] | undefined>;
-}
-
-export default async function Page({ searchParams }: PageProps) {
+}) {
   const query = typeof searchParams?.query === 'string' ? searchParams.query : '';
   const page = typeof searchParams?.page === 'string' ? Number(searchParams.page) : 1;
 
