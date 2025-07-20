@@ -1,24 +1,27 @@
 // auth.config.ts
-import type { AuthConfig } from '@auth/core'; // MANTENHA esta importação
+import type { AuthConfig } from '@auth/core';
+// Adicione estas novas importações de tipos
+import type { Auth, RequestInternal } from '@auth/core/types'; 
 
 export const authConfig = {
   pages: {
     signIn: '/login',
   },
-  authorized({ auth, request: { nextUrl } }) {
+  // Agora especificamos os tipos para 'auth' e 'request'
+  authorized({ auth, request }: { auth: Auth | null; request: RequestInternal }) {
     const isLoggedIn = !!auth?.user;
-    const isOnDashboard = nextUrl.pathname.startsWith('/dashboard');
+    const isOnDashboard = request.nextUrl.pathname.startsWith('/dashboard');
 
     if (isOnDashboard) {
       if (isLoggedIn) return true;
-      return false;
+      return false; // Redireciona usuários não autenticados para a página de login
     } else if (isLoggedIn) {
-      return Response.redirect(new URL('/dashboard', nextUrl));
+      return Response.redirect(new URL('/dashboard', request.nextUrl)); // Use request.nextUrl aqui
     }
     return true;
   },
   callbacks: {
-    // MANTENHA este objeto callbacks mesmo que vazio, se não estiver usando outros
+    // Mantenha este objeto callbacks mesmo que vazio, se não estiver usando outros
   },
   providers: [],
-}; // <-- FICA ASSIM, SEM 'satisfies AuthConfig' no final
+};
