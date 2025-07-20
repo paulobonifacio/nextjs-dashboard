@@ -12,24 +12,24 @@
     "autoprefixer": "10.4.20",
     "bcrypt": "^5.1.1",
     "clsx": "^2.1.1",
-    "next": "15.3.2",
-    "next-auth": "5.0.0-beta.29",
+    "next": "14.2.5",             <!-- ALTERADO: Versão estável do Next.js 14 -->
+    "next-auth": "^4.24.7",       <!-- ALTERADO: Versão estável do Next-Auth 4 -->
     "postcss": "8.5.1",
-    "postgres": "^3.4.6",
-    "react": "latest",
-    "react-dom": "latest",
+    "postgres": "^3.4.7",         <!-- ATUALIZADO: Para a versão vista nos logs do Vercel -->
+    "react": "18.2.0",            <!-- ALTERADO: Versão específica do React 18 -->
+    "react-dom": "18.2.0",        <!-- ALTERADO: Versão específica do React-DOM 18 -->
     "tailwindcss": "3.4.17",
-    "typescript": "5.7.3",
-    "use-debounce": "^10.0.4",
-    "zod": "^3.25.17"
+    "typescript": "5.2.2",        <!-- ALTERADO: Versão do TypeScript compatível com React 18/Next.js 14 -->
+    "use-debounce": "^10.0.5",    <!-- ATUALIZADO: Para a versão vista nos logs do Vercel -->
+    "zod": "^3.25.76"             <!-- ATUALIZADO: Para a versão vista nos logs do Vercel -->
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
-    "@types/node": "22.10.7",
-    "@types/react": "19.0.7",
-    "@types/react-dom": "19.0.3",
-    "eslint": "^9",
-    "eslint-config-next": "15.4.2"
+    "@types/node": "20.14.13",    <!-- AJUSTADO: Para compatibilidade com Node.js 20/React 18 -->
+    "@types/react": "18.2.66",    <!-- AJUSTADO: Para compatibilidade com React 18 -->
+    "@types/react-dom": "18.2.22",<!-- AJUSTADO: Para compatibilidade com React 18 -->
+    "eslint": "^8",               <!-- ALTERADO: Para compatibilidade com Next.js 14 -->
+    "eslint-config-next": "14.2.5"<!-- ALTERADO: Para compatibilidade com Next.js 14 -->
   },
   "pnpm": {
     "onlyBuiltDependencies": [
