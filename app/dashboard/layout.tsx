@@ -1,5 +1,4 @@
 // /app/dashboard/layout.tsx
-export const experimental_ppr = true;
 import { ReactNode } from 'react';
 import SideNav from '@/app/ui/dashboard/sidenav';
 
