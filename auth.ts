@@ -1,15 +1,17 @@
-// auth.ts (VERSÃO FINAL E ROBUSTA)
+// auth.ts (VERSÃO CORRIGIDA - ÚNICA INICIALIZAÇÃO DO NextAuth.js)
 
 import NextAuth from 'next-auth';
-import { authConfig } from './auth.config'; // O auth.config.ts é essencial aqui
 import Credentials from 'next-auth/providers/credentials';
+import { authConfig } from './auth.config'; // O auth.config.ts é essencial aqui
 import { z } from 'zod';
 import type { User } from '@/app/lib/definitions';
 import bcrypt from 'bcrypt';
 import postgres from 'postgres';
- 
+// Importe AuthError aqui também, pois 'authenticate' está neste arquivo
+import { AuthError } from '@auth/core/errors'; // Certifique-se de que esta linha está correta
+
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
- 
+
 async function getUser(email: string): Promise<User | undefined> {
   try {
     const user = await sql<User[]>`SELECT * FROM users WHERE email=${email}`;
@@ -20,10 +22,9 @@ async function getUser(email: string): Promise<User | undefined> {
   }
 }
 
-// Inicializa NextAuth AQUI para exportar auth, signIn, signOut para o resto da aplicação
-// Esta é a mesma chamada NextAuth que você tinha antes, mas agora é a "fonte"
-// para as funções de autenticação globais.
-export const { auth, signIn, signOut } = NextAuth({
+// AQUI é a ÚNICA inicialização do NextAuth.js
+// Exportamos auth, signIn, signOut E handlers
+export const { auth, signIn, signOut, handlers } = NextAuth({ 
   ...authConfig,
   providers: [
     Credentials({
@@ -35,7 +36,7 @@ export const { auth, signIn, signOut } = NextAuth({
         const parsedCredentials = z
           .object({ email: z.string().email(), password: z.string().min(6) })
           .safeParse(credentials);
- 
+
         if (parsedCredentials.success) {
           const { email, password } = parsedCredentials.data;
           const user = await getUser(email);
@@ -50,4 +51,25 @@ export const { auth, signIn, signOut } = NextAuth({
   ],
 });
 
-// NADA DE 'handlers' AQUI. handlers é para o route.ts.
+// Se você tiver a função 'authenticate' aqui, ela deve permanecer.
+// Exemplo:
+/*
+export async function authenticate(
+  prevState: string | undefined,
+  formData: FormData,
+) {
+  try {
+    await signIn('credentials', formData);
+  } catch (error) {
+    if (error instanceof AuthError) {
+      switch (error.type) {
+        case 'CredentialsSignin':
+          return 'Invalid credentials.';
+        default:
+          return 'Something went wrong.';
+      }
+    }
+    throw error;
+  }
+}
+*/

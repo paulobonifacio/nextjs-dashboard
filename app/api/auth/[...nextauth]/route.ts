@@ -1,52 +1,10 @@
-// app/api/auth/[...nextauth]/route.ts (Versão Corrigida)
+// app/api/auth/[...nextauth]/route.ts (NOVO CONTEÚDO - Simplificado)
 
-import NextAuth from 'next-auth';
-import Credentials from 'next-auth/providers/credentials';
-import { z } from 'zod';
-import bcrypt from 'bcrypt';
-import postgres from 'postgres';
-import type { User } from '@/app/lib/definitions';
-import { authConfig } from '@/auth.config'; // Certifique-se de que o caminho está correto
+// Importa apenas os handlers do seu arquivo auth.ts.
+// O caminho '@/auth' deve funcionar se o seu tsconfig.json estiver configurado para o alias.
+// Caso contrário, use o caminho relativo correto, por exemplo:
+// import { handlers } from '../../../../auth'; // Se auth.ts estiver na raiz do projeto
+import { handlers } from '@/auth'; 
 
-const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
-
-async function getUser(email: string): Promise<User | undefined> {
-  try {
-    const user = await sql<User[]>`SELECT * FROM users WHERE email=${email}`;
-    return user[0];
-  } catch (error) {
-    console.error('Failed to fetch user:', error);
-    throw new Error('Failed to fetch user.');
-  }
-}
-
-// Inicializa o NextAuth com a sua configuração
-const handler = NextAuth({
-  ...authConfig,
-  providers: [
-    Credentials({
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
-      },
-      async authorize(credentials) {
-        const parsedCredentials = z
-          .object({ email: z.string().email(), password: z.string().min(6) })
-          .safeParse(credentials);
- 
-        if (parsedCredentials.success) {
-          const { email, password } = parsedCredentials.data;
-          const user = await getUser(email);
-          if (!user) return null;
-          const passwordsMatch = await bcrypt.compare(password, user.password);
-          if (passwordsMatch) return user;
-        }
-        console.log('Invalid credentials');
-        return null;
-      },
-    }),
-  ],
-});
-
-// EXPORTAÇÃO PARA O APP ROUTER: APENAS GET e POST
-export const { GET, POST } = handler; // Isso está correto para a rota API
+// Exporta GET e POST dos handlers. Isso é o que o Next.js espera para a rota API.
+export const { GET, POST } = handlers;
