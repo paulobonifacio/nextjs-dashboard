@@ -1,20 +1,15 @@
-// app/api/auth/[...nextauth]/route.ts
+// app/api/auth/[...nextauth]/route.ts (Versão Corrigida)
 
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
-import { z } from 'zod'; // Para validação
-import bcrypt from 'bcrypt'; // Para comparação de senhas
-import postgres from 'postgres'; // Para conexão com o banco de dados
+import { z } from 'zod';
+import bcrypt from 'bcrypt';
+import postgres from 'postgres';
+import type { User } from '@/app/lib/definitions';
+import { authConfig } from '@/auth.config'; // Certifique-se de que o caminho está correto
 
-// Importe o tipo User (se ele estiver em '@/app/lib/definitions')
-import type { User } from '@/app/lib/definitions'; 
-
-// Importe authConfig se você decidir mantê-lo em um arquivo separado
-import { authConfig } from '@/auth.config'; // Verifique o caminho real para auth.config.ts
-
-
-// Função para buscar usuário (movida de auth.ts se ela não for usada em outro lugar)
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+
 async function getUser(email: string): Promise<User | undefined> {
   try {
     const user = await sql<User[]>`SELECT * FROM users WHERE email=${email}`;
@@ -25,27 +20,9 @@ async function getUser(email: string): Promise<User | undefined> {
   }
 }
 
-// Configuração principal do NextAuth.js
+// Inicializa o NextAuth com a sua configuração
 const handler = NextAuth({
-  // Use authConfig se o arquivo auth.config.ts for mantido e importado
-  ...authConfig, 
-  // Ou coloque o conteúdo de authConfig diretamente aqui:
-  // pages: {
-  //   signIn: '/login',
-  // },
-  // authorized({ auth, request: { nextUrl } }) {
-  //   const isLoggedIn = !!auth?.user;
-  //   const isOnDashboard = nextUrl.pathname.startsWith('/dashboard');
-  //   if (isOnDashboard) {
-  //     if (isLoggedIn) return true;
-  //     return false;
-  //   } else if (isLoggedIn) {
-  //     return Response.redirect(new URL('/dashboard', nextUrl));
-  //   }
-  //   return true;
-  // },
-  // callbacks: {}, // Se tiver callbacks, coloque aqui
-
+  ...authConfig,
   providers: [
     Credentials({
       credentials: {
@@ -71,6 +48,5 @@ const handler = NextAuth({
   ],
 });
 
-// EXPORTAÇÃO CORRETA para o App Router:
-// As funções GET e POST são acessadas diretamente do 'handler' retornado por NextAuth
-export const { GET, POST } = handler;
+// EXPORTAÇÃO PARA O APP ROUTER: APENAS GET e POST
+export const { GET, POST } = handler; // Isso está correto para a rota API
