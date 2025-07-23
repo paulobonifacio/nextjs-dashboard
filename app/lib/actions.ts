@@ -1,4 +1,4 @@
-// app/lib/actions.ts (CÓDIGO COMPLETO E CORRIGIDO)
+// app/lib/actions.ts (CÓDIGO COMPLETO E CORRIGIDO - VERSÃO FINAL)
 'use server'; // Indica que este é um Server Action
 
 import { z } from 'zod'; // Para validação de dados
@@ -6,8 +6,9 @@ import postgres from 'postgres'; // Para interação com o banco de dados Postgr
 import { revalidatePath } from 'next/cache'; // Para revalidar o cache de rotas no Next.js
 import { redirect } from 'next/navigation'; // Para redirecionamento de rotas
 
-// IMPORTANTE: Importa 'signIn' do novo arquivo intermediário para Server Actions
-import { signIn } from '@/app/lib/auth-server-actions'; 
+// IMPORTANTE: Importa o objeto 'auth' diretamente do seu arquivo auth.ts principal
+// Isso garante que a função signIn seja corretamente resolvida no lado do servidor.
+import { auth } from '@/auth'; // <--- ESTA É A ALTERAÇÃO CRUCIAL AQUI!
 
 // Importa 'AuthError' para tratamento de erros específicos do NextAuth.js
 import { AuthError } from '@auth/core/errors'; 
@@ -117,11 +118,9 @@ export async function updateInvoice(
     };
   }
  
-  // Extrai os dados validados
   const { customerId, amount, status } = validatedFields.data;
   const amountInCents = amount * 100; // Converte o valor para centavos
  
-  // Tenta atualizar a fatura no banco de dados
   try {
     await sql`
       UPDATE invoices
@@ -134,7 +133,6 @@ export async function updateInvoice(
     return { message: 'Database Error: Failed to Update Invoice.' };
   }
  
-  // Revalida o cache da rota de faturas e redireciona
   revalidatePath('/dashboard/invoices');
   redirect('/dashboard/invoices');
 }
@@ -164,10 +162,9 @@ export async function authenticate(
   formData: FormData,
 ) {
   try {
-    // Chama a função signIn do NextAuth.js com o provedor 'credentials' e os dados do formulário.
-    // Esta chamada irá interagir com a rota API do NextAuth.js (/api/auth/[...nextauth])
-    // para tentar autenticar o usuário.
-    await signIn('credentials', formData);
+    // Chama a função signIn do NextAuth.js através do objeto 'auth'.
+    // Esta é a forma correta para Server Actions no App Router.
+    await auth.signIn('credentials', formData); // <--- ESTA É A ALTERAÇÃO CRUCIAL AQUI!
   } catch (error) {
     // Trata erros específicos de autenticação do NextAuth.js
     if (error instanceof AuthError) {
