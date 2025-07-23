@@ -1,12 +1,15 @@
-// app/lib/actions.ts (VERSÃO FINAL E CORRIGIDA - SEM FUNÇÃO AUTHENTICATE)
-'use server'; // Indica que este é um Server Action
+// app/lib/actions.ts (VERSÃO FINAL E CORRIGIDA - COM FUNÇÃO AUTHENTICATE)
+'use server'; // ESSENCIAL: Este arquivo é para Server Actions
 
 import { z } from 'zod'; // Para validação de dados
 import postgres from 'postgres'; // Para interação com o banco de dados PostgreSQL
 import { revalidatePath } from 'next/cache'; // Para revalidar o cache de rotas no Next.js
 import { redirect } from 'next/navigation'; // Para redirecionamento de rotas
 
-// Não precisamos de imports relacionados à autenticação aqui, pois a lógica foi movida.
+// IMPORTANTE: Importa 'auth' e 'AuthError' diretamente do seu auth.ts principal
+import { auth } from '@/auth'; // Caminho para o seu auth.ts principal
+import { AuthError } from '@auth/core/errors';
+
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
@@ -145,5 +148,33 @@ export async function deleteInvoice(id: string) {
   } catch (error) {
     console.error('Failed to delete invoice:', error);
     throw new Error('Failed to delete invoice: ' + (error as Error).message);
+  }
+}
+
+/**
+ * Autentica um usuário usando credenciais.
+ * @param prevState O estado anterior da Server Action.
+ * @param formData Os dados do formulário (email e senha).
+ * @returns Uma mensagem de erro se a autenticação falhar, ou nada em caso de sucesso.
+ */
+export async function authenticate(
+  prevState: string | undefined,
+  formData: FormData,
+) {
+  try {
+    // Chama a função signIn do NextAuth.js com o provedor 'credentials' e os dados do formulário.
+    await auth.signIn('credentials', formData);
+  } catch (error) {
+    // Trata erros específicos de autenticação do NextAuth.js
+    if (error instanceof AuthError) {
+      switch (error.type) {
+        case 'CredentialsSignin':
+          return 'Invalid credentials.'; // Credenciais inválidas (usuário/senha incorretos)
+        default:
+          return 'Something went wrong.'; // Outros erros de autenticação
+      }
+    }
+    // Re-lança outros tipos de erros que não são de autenticação
+    throw error;
   }
 }

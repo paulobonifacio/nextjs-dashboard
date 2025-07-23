@@ -1,5 +1,5 @@
-// app/ui/login-form.tsx (VERSÃO FINAL E CORRIGIDA - COM AUTHENTICATE LOCAL)
-'use client'; // <-- ESSENCIAL: Este componente é um Client Component
+// app/ui/login-form.tsx (VERSÃO FINAL E CORRIGIDA - IMPORTANDO AUTHENTICATE)
+'use client'; // ESSENCIAL: Este componente é um Client Component
 
 import {
   AtSymbolIcon,
@@ -10,38 +10,12 @@ import { ArrowRightIcon } from '@heroicons/react/20/solid';
 import { Button } from './button';
 import { useFormState, useFormStatus } from 'react-dom'; // Importa hooks
 
-// Importa 'auth' e 'AuthError' diretamente do seu auth.ts principal
-// para serem usados na Server Action local 'authenticate'.
-import { auth } from '@/auth'; 
-import { AuthError } from '@auth/core/errors';
-
-
-// A FUNÇÃO AUTHENTICATE AGORA ESTÁ AQUI, COMO UMA SERVER ACTION LOCAL.
-async function authenticate(
-  prevState: string | undefined,
-  formData: FormData,
-) {
-  'use server'; // <-- ESSENCIAL: Marca esta função como uma Server Action
-
-  try {
-    // Chama a função signIn do NextAuth.js através do objeto 'auth'.
-    await auth.signIn('credentials', formData);
-  } catch (error) {
-    if (error instanceof AuthError) {
-      switch (error.type) {
-        case 'CredentialsSignin':
-          return 'Invalid credentials.';
-        default:
-          return 'Something went wrong.';
-      }
-    }
-    throw error;
-  }
-}
+// IMPORTANTE: Reimporta a Server Action 'authenticate' do arquivo de ações
+import { authenticate } from '@/app/lib/actions'; // <-- IMPORTAÇÃO CORRETA AGORA!
 
 
 export default function LoginForm() {
-  // useFormState agora usa a função authenticate definida acima (neste mesmo arquivo)
+  // useFormState agora usa a função authenticate importada
   const [errorMessage, dispatch] = useFormState(authenticate, undefined);
 
   return (
