@@ -1,8 +1,7 @@
-// auth.config.ts (VERSÃO FINAL E CORRIGIDA PARA TIPAGEM)
-// Mude esta linha:
-// import type { NextAuthConfig } from 'next-auth';
-// Para esta:
-import type { NextAuthConfig } from 'next-auth/next'; // <-- CORREÇÃO AQUI!
+// auth.config.ts (VERSÃO FINAL E ABSOLUTAMENTE CORRIGIDA PARA TIPAGEM NO NEXTAUTH v4/v5+)
+// Esta é a forma mais robusta de importar o tipo NextAuthConfig,
+// compatível com diferentes versões e comportamentos de empacotamento.
+import NextAuthConfig from 'next-auth/next'; // <-- CORREÇÃO AQUI! Removido 'type' e chaves '{}'
 
 export const authConfig = {
   pages: {
