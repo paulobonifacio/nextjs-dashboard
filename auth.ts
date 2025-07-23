@@ -1,4 +1,4 @@
-// auth.ts (VERSÃO CORRIGIDA - ÚNICA INICIALIZAÇÃO DO NextAuth.js)
+// auth.ts (NOVA VERSÃO - Removido 'handlers' da exportação)
 
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
@@ -7,8 +7,7 @@ import { z } from 'zod';
 import type { User } from '@/app/lib/definitions';
 import bcrypt from 'bcrypt';
 import postgres from 'postgres';
-// Importe AuthError aqui também, pois 'authenticate' está neste arquivo
-import { AuthError } from '@auth/core/errors'; // Certifique-se de que esta linha está correta
+import { AuthError } from '@auth/core/errors'; 
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
@@ -22,9 +21,9 @@ async function getUser(email: string): Promise<User | undefined> {
   }
 }
 
-// AQUI é a ÚNICA inicialização do NextAuth.js
-// Exportamos auth, signIn, signOut E handlers
-export const { auth, signIn, signOut, handlers } = NextAuth({ 
+// AQUI é a ÚNICA inicialização do NextAuth.js para 'auth', 'signIn', 'signOut'
+// REMOVIDO 'handlers' da desestruturação aqui
+export const { auth, signIn, signOut } = NextAuth({ 
   ...authConfig,
   providers: [
     Credentials({
@@ -51,8 +50,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
   ],
 });
 
-// Se você tiver a função 'authenticate' aqui, ela deve permanecer.
-// Exemplo:
+// A função 'authenticate' permanece aqui se ela estiver sendo usada
 /*
 export async function authenticate(
   prevState: string | undefined,
