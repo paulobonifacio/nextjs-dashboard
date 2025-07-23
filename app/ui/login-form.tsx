@@ -1,4 +1,4 @@
-// app/ui/login-form.tsx (VERSÃO FINAL E CORRIGIDA - IMPORTANDO AUTHENTICATE)
+// app/ui/login-form.tsx (VERSÃO FINAL E CORRIGIDA)
 'use client'; // ESSENCIAL: Este componente é um Client Component
 
 import {
@@ -8,18 +8,71 @@ import {
 } from '@heroicons/react/24/outline';
 import { ArrowRightIcon } from '@heroicons/react/20/solid';
 import { Button } from './button';
-import { useFormState, useFormStatus } from 'react-dom'; // Importa hooks
+import { useFormStatus } from 'react-dom'; // Importa useFormStatus para o botão
+import { useState } from 'react'; // Para gerenciar o estado local de erro
 
-// IMPORTANTE: Reimporta a Server Action 'authenticate' do arquivo de ações
-import { authenticate } from '@/app/lib/actions'; // <-- IMPORTAÇÃO CORRETA AGORA!
+// IMPORTANTE: Importa signIn e AuthError do pacote cliente-side do NextAuth.js
+import { signIn } from 'next-auth/react';
+import { AuthError } from '@auth/core/errors';
 
 
 export default function LoginForm() {
-  // useFormState agora usa a função authenticate importada
-  const [errorMessage, dispatch] = useFormState(authenticate, undefined);
+  const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
+  // useFormStatus é usado para mostrar o estado de 'pending' do formulário
+  // (útil se você tivesse uma Server Action aqui, mas manteremos para compatibilidade)
+  const { pending } = useFormStatus(); 
+
+  // Função para lidar com a submissão do formulário
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault(); // Previne o comportamento padrão do formulário (recarregar a página)
+
+    setErrorMessage(undefined); // Limpa mensagens de erro anteriores
+
+    const formData = new FormData(event.currentTarget); // Obtém os dados do formulário
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+
+    try {
+      // Chama a função signIn do next-auth/react diretamente.
+      // Esta função enviará uma requisição POST para /api/auth/callback/credentials
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false, // Importante: desabilita o redirecionamento automático do NextAuth.js
+        // callbackUrl: '/dashboard', // Você pode definir uma URL de callback aqui, mas o redirecionamento manual é mais flexível
+      });
+
+      if (result?.error) {
+        // Se houver um erro retornado pelo signIn (ex: credenciais inválidas)
+        if (result.error === 'CredentialsSignin') {
+          setErrorMessage('Invalid credentials.');
+        } else {
+          setErrorMessage('Something went wrong: ' + result.error);
+        }
+      } else if (result?.ok) {
+        // Se o login for bem-sucedido, redireciona manualmente para o dashboard
+        window.location.href = '/dashboard';
+      }
+    } catch (error) {
+      // Captura erros que podem ser lançados (ex: problemas de rede, erros AuthError)
+      if (error instanceof AuthError) {
+        switch (error.type) {
+          case 'CredentialsSignin':
+            setErrorMessage('Invalid credentials.');
+            break;
+          default:
+            setErrorMessage('Something went wrong.');
+        }
+      } else {
+        setErrorMessage('An unexpected error occurred.');
+      }
+      console.error('Login error:', error);
+    }
+  };
 
   return (
-    <form action={dispatch} className="space-y-3">
+    // O formulário usa onSubmit para chamar handleSubmit
+    <form onSubmit={handleSubmit} className="space-y-3">
       <div className="flex-1 rounded-lg bg-gray-50 px-6 pb-4 pt-8">
         <h1 className="mb-3 text-2xl">
           Please log in to continue.
@@ -37,7 +90,7 @@ export default function LoginForm() {
                 className="peer block w-full rounded-md border border-gray-200 py-[9px] pl-10 text-sm outline-2 placeholder:text-gray-500"
                 id="email"
                 type="email"
-                name="email"
+                name="email" // Mantenha o atributo 'name' para que FormData possa capturar o valor
                 placeholder="Enter your email address"
                 required
               />
@@ -56,7 +109,7 @@ export default function LoginForm() {
                 className="peer block w-full rounded-md border border-gray-200 py-[9px] pl-10 text-sm outline-2 placeholder:text-gray-500"
                 id="password"
                 type="password"
-                name="password"
+                name="password" // Mantenha o atributo 'name' para que FormData possa capturar o valor
                 placeholder="Enter password"
                 required
                 minLength={6}
@@ -66,7 +119,7 @@ export default function LoginForm() {
           </div>
         </div>
         <LoginButton />
-        {/* Adiciona o display de erro */}
+        {/* Adiciona o display de erro usando o estado local */}
         <div
           className="flex h-8 items-end space-x-1"
           aria-live="polite"
@@ -84,8 +137,9 @@ export default function LoginForm() {
   );
 }
 
+// Componente do botão de login (pode permanecer separado ou ser embutido)
 function LoginButton() {
-  const { pending } = useFormStatus();
+  const { pending } = useFormStatus(); // Obtém o estado de 'pending' do formulário
 
   return (
     <Button className="mt-4 w-full" aria-disabled={pending}>

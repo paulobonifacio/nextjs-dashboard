@@ -1,31 +1,28 @@
 // auth.config.ts
-import type { AuthConfig } from '@auth/core';
-// REMOVA: import type { Auth, RequestInternal } from '@auth/core/types';
-
-// Adicione as importações de tipo necessárias de 'next-auth' e 'next/server'
-import type { Session } from 'next-auth'; // O tipo para 'auth'
-import type { NextRequest } from 'next/server'; // O tipo para 'request'
+import type { NextAuthConfig } from 'next-auth';
 
 export const authConfig = {
   pages: {
-    signIn: '/login',
-  },
-  // Agora especificamos os tipos para 'auth' (Session) e 'request' (NextRequest)
-  // Certifique-se de que a desestruturação do 'request' inclua 'nextUrl'
-  authorized({ auth, request }: { auth: Session | null; request: NextRequest }) {
-    const isLoggedIn = !!auth?.user;
-    const isOnDashboard = request.nextUrl.pathname.startsWith('/dashboard');
-
-    if (isOnDashboard) {
-      if (isLoggedIn) return true;
-      return false; // Redireciona usuários não autenticados para a página de login
-    } else if (isLoggedIn) {
-      return Response.redirect(new URL('/dashboard', request.nextUrl));
-    }
-    return true;
+    signIn: '/login', // Redireciona para sua página de login personalizada
   },
   callbacks: {
-    // Mantenha este objeto callbacks mesmo que vazio, se não estiver usando outros
+    // A função `authorized` é crucial para o middleware.
+    // Ela decide se o usuário está autorizado a acessar uma rota protegida.
+    authorized({ auth, request: { nextUrl } }) {
+      const isLoggedIn = !!auth?.user; // Verifica se há um usuário logado
+      const isOnDashboard = nextUrl.pathname.startsWith('/dashboard'); // Verifica se está no dashboard
+
+      if (isOnDashboard) {
+        if (isLoggedIn) return true; // Se logado e no dashboard, permite acesso
+        return false; // Se não logado e no dashboard, redireciona para login
+      } else if (isLoggedIn) {
+        // Se logado e não no dashboard (ex: na página de login),
+        // redireciona para o dashboard para evitar que o usuário logado veja a página de login.
+        return Response.redirect(new URL('/dashboard', nextUrl));
+      }
+      return true; // Permite acesso a rotas públicas (não protegidas)
+    },
+    // Outros callbacks (jwt, session) podem ser definidos aqui ou em auth.ts se necessário.
   },
-  providers: [],
+  providers: [], // IMPORTANT: Providers should be defined in auth.ts, not here.
 };
