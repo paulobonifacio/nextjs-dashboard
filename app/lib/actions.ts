@@ -1,14 +1,21 @@
-'use server';
-import { z } from 'zod';
-import postgres from 'postgres'; 
-import { revalidatePath } from 'next/cache';
-import { signIn } from '@/auth';
-// A linha abaixo foi alterada para importar AuthError do local correto e mais fundamental.
-import { AuthError } from '@auth/core/errors'; // <-- A ÚLTIMA E MAIS PROVÁVEL CORREÇÃO AQUI!
-import { redirect } from 'next/navigation';
+// app/lib/actions.ts (CÓDIGO COMPLETO E CORRIGIDO)
+'use server'; // Indica que este é um Server Action
 
+import { z } from 'zod'; // Para validação de dados
+import postgres from 'postgres'; // Para interação com o banco de dados PostgreSQL
+import { revalidatePath } from 'next/cache'; // Para revalidar o cache de rotas no Next.js
+import { redirect } from 'next/navigation'; // Para redirecionamento de rotas
+
+// IMPORTANTE: Importa 'signIn' do novo arquivo intermediário para Server Actions
+import { signIn } from '@/app/lib/auth-server-actions'; 
+
+// Importa 'AuthError' para tratamento de erros específicos do NextAuth.js
+import { AuthError } from '@auth/core/errors'; 
+
+// Configura a conexão com o banco de dados PostgreSQL
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
+// Define o tipo para o estado da Server Action, usado para mensagens de erro
 export type State = {
   errors?: {
     customerId?: string[];
@@ -18,6 +25,7 @@ export type State = {
   message?: string | null;
 };
 
+// Define o schema de validação para o formulário de fatura
 const FormSchema = z.object({
   id: z.string(),
   customerId: z.string({
@@ -25,57 +33,83 @@ const FormSchema = z.object({
   }),
   amount: z.coerce
     .number()
-    .gt(0, { message: 'Please enter an amount greater than $0.' }),
+    .gt(0, { message: 'Please enter an amount greater than $0.' }), // Garante que o valor seja maior que 0
   status: z.enum(['pending', 'paid'], {
     invalid_type_error: 'Please select an invoice status.',
   }),
   date: z.string(),
 });
  
+// Schema para criação de fatura (omitindo id e data, que são gerados automaticamente)
 const CreateInvoice = FormSchema.omit({ id: true, date: true });
 
+/**
+ * Cria uma nova fatura no banco de dados.
+ * @param prevState O estado anterior da Server Action.
+ * @param formData Os dados do formulário enviados.
+ * @returns Um objeto com erros de validação ou mensagem de sucesso.
+ */
 export async function createInvoice(prevState: State, formData: FormData) {
+  // Valida os campos do formulário usando o schema
   const validatedFields = CreateInvoice.safeParse({
     customerId: formData.get('customerId'),
     amount: formData.get('amount'),
     status: formData.get('status'),
   });
+
+  // Se a validação falhar, retorna os erros
   if (!validatedFields.success) {
     return {
       errors: validatedFields.error.flatten().fieldErrors,
       message: 'Missing Fields. Failed to Create Invoice.',
     };
   }
+
+  // Extrai os dados validados
   const { customerId, amount, status } = validatedFields.data;
-  const amountInCents = amount * 100;
-  const date = new Date().toISOString().split('T')[0];
- 
+  const amountInCents = amount * 100; // Converte o valor para centavos
+  const date = new Date().toISOString().split('T')[0]; // Obtém a data atual
+
+  // Tenta inserir a nova fatura no banco de dados
   try {
     await sql`
       INSERT INTO invoices (customer_id, amount, status, date)
       VALUES (${customerId}, ${amountInCents}, ${status}, ${date})
     `;
   } catch (error) {
-    console.error(error);
+    // Em caso de erro no banco de dados, loga o erro e retorna uma mensagem
+    console.error('Database Error: Failed to Create Invoice.', error);
+    return { message: 'Database Error: Failed to Create Invoice.' };
   }
  
+  // Revalida o cache da rota de faturas e redireciona
   revalidatePath('/dashboard/invoices');
   redirect('/dashboard/invoices');
 }
 
+// Schema para atualização de fatura (omitindo id e data)
 const UpdateInvoice = FormSchema.omit({ id: true, date: true });
 
+/**
+ * Atualiza uma fatura existente no banco de dados.
+ * @param id O ID da fatura a ser atualizada.
+ * @param prevState O estado anterior da Server Action.
+ * @param formData Os dados do formulário enviados.
+ * @returns Um objeto com erros de validação ou mensagem de sucesso.
+ */
 export async function updateInvoice(
   id: string,
   prevState: State,
   formData: FormData,
 ) {
+  // Valida os campos do formulário
   const validatedFields = UpdateInvoice.safeParse({
     customerId: formData.get('customerId'),
     amount: formData.get('amount'),
     status: formData.get('status'),
   });
  
+  // Se a validação falhar, retorna os erros
   if (!validatedFields.success) {
     return {
       errors: validatedFields.error.flatten().fieldErrors,
@@ -83,9 +117,11 @@ export async function updateInvoice(
     };
   }
  
+  // Extrai os dados validados
   const { customerId, amount, status } = validatedFields.data;
-  const amountInCents = amount * 100;
+  const amountInCents = amount * 100; // Converte o valor para centavos
  
+  // Tenta atualizar a fatura no banco de dados
   try {
     await sql`
       UPDATE invoices
@@ -93,41 +129,56 @@ export async function updateInvoice(
       WHERE id = ${id}
     `;
   } catch (error) {
+    // Em caso de erro no banco de dados, retorna uma mensagem
+    console.error('Database Error: Failed to Update Invoice.', error);
     return { message: 'Database Error: Failed to Update Invoice.' };
   }
  
+  // Revalida o cache da rota de faturas e redireciona
   revalidatePath('/dashboard/invoices');
   redirect('/dashboard/invoices');
 }
 
+/**
+ * Exclui uma fatura do banco de dados.
+ * @param id O ID da fatura a ser excluída.
+ */
 export async function deleteInvoice(id: string) {
-  try
-  {
+  try {
     await sql`DELETE FROM invoices WHERE id = ${id}`;
-    revalidatePath('/dashboard/invoices');
-  }
-  catch (error)
-  {
+    revalidatePath('/dashboard/invoices'); // Revalida o cache após a exclusão
+  } catch (error) {
     console.error('Failed to delete invoice:', error);
     throw new Error('Failed to delete invoice: ' + (error as Error).message);
   }
 }
 
+/**
+ * Autentica um usuário usando credenciais.
+ * @param prevState O estado anterior da Server Action.
+ * @param formData Os dados do formulário (email e senha).
+ * @returns Uma mensagem de erro se a autenticação falhar, ou nada em caso de sucesso.
+ */
 export async function authenticate(
   prevState: string | undefined,
   formData: FormData,
 ) {
   try {
+    // Chama a função signIn do NextAuth.js com o provedor 'credentials' e os dados do formulário.
+    // Esta chamada irá interagir com a rota API do NextAuth.js (/api/auth/[...nextauth])
+    // para tentar autenticar o usuário.
     await signIn('credentials', formData);
   } catch (error) {
+    // Trata erros específicos de autenticação do NextAuth.js
     if (error instanceof AuthError) {
       switch (error.type) {
         case 'CredentialsSignin':
-          return 'Invalid credentials.';
+          return 'Invalid credentials.'; // Credenciais inválidas (usuário/senha incorretos)
         default:
-          return 'Something went wrong.';
+          return 'Something went wrong.'; // Outros erros de autenticação
       }
     }
+    // Re-lança outros tipos de erros que não são de autenticação
     throw error;
   }
 }
