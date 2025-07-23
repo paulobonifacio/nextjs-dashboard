@@ -19,7 +19,8 @@ async function getUser(email: string): Promise<User | undefined> {
   }
 }
  
-export const { auth, signIn, signOut } = NextAuth({
+// ALTERAÇÃO AQUI: Adicionado 'handlers' à desestruturação
+export const { auth, signIn, signOut, handlers } = NextAuth({ 
   ...authConfig,
   providers: [
     Credentials({
