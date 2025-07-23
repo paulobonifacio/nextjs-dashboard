@@ -29,7 +29,7 @@ export default withAuth(
 );
 
 // O 'matcher' define quais rotas o middleware vai proteger.
-// Este matcher é o que você já tinha e está correto.
+// ATENÇÃO: A rota '/login' foi adicionada à exclusão para evitar o loop de redirecionamento.
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|.*\\.png$).*)'],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|login).*)'],
 };
