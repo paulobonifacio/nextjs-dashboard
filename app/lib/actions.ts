@@ -1,4 +1,4 @@
-// app/lib/actions.ts (CÓDIGO COMPLETO E CORRIGIDO - VERSÃO FINAL)
+// app/lib/actions.ts (VERSÃO FINAL E CORRIGIDA - SEM FUNÇÃO AUTHENTICATE)
 'use server'; // Indica que este é um Server Action
 
 import { z } from 'zod'; // Para validação de dados
@@ -6,14 +6,8 @@ import postgres from 'postgres'; // Para interação com o banco de dados Postgr
 import { revalidatePath } from 'next/cache'; // Para revalidar o cache de rotas no Next.js
 import { redirect } from 'next/navigation'; // Para redirecionamento de rotas
 
-// IMPORTANTE: Importa o objeto 'auth' diretamente do seu arquivo auth.ts principal
-// Isso garante que a função signIn seja corretamente resolvida no lado do servidor.
-import { auth } from '@/auth'; // <--- ESTA É A ALTERAÇÃO CRUCIAL AQUI!
+// Não precisamos de imports relacionados à autenticação aqui, pois a lógica foi movida.
 
-// Importa 'AuthError' para tratamento de erros específicos do NextAuth.js
-import { AuthError } from '@auth/core/errors'; 
-
-// Configura a conexão com o banco de dados PostgreSQL
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
 // Define o tipo para o estado da Server Action, usado para mensagens de erro
@@ -118,9 +112,11 @@ export async function updateInvoice(
     };
   }
  
+  // Extrai os dados validados
   const { customerId, amount, status } = validatedFields.data;
   const amountInCents = amount * 100; // Converte o valor para centavos
  
+  // Tenta atualizar a fatura no banco de dados
   try {
     await sql`
       UPDATE invoices
@@ -133,6 +129,7 @@ export async function updateInvoice(
     return { message: 'Database Error: Failed to Update Invoice.' };
   }
  
+  // Revalida o cache da rota de faturas e redireciona
   revalidatePath('/dashboard/invoices');
   redirect('/dashboard/invoices');
 }
@@ -148,34 +145,5 @@ export async function deleteInvoice(id: string) {
   } catch (error) {
     console.error('Failed to delete invoice:', error);
     throw new Error('Failed to delete invoice: ' + (error as Error).message);
-  }
-}
-
-/**
- * Autentica um usuário usando credenciais.
- * @param prevState O estado anterior da Server Action.
- * @param formData Os dados do formulário (email e senha).
- * @returns Uma mensagem de erro se a autenticação falhar, ou nada em caso de sucesso.
- */
-export async function authenticate(
-  prevState: string | undefined,
-  formData: FormData,
-) {
-  try {
-    // Chama a função signIn do NextAuth.js através do objeto 'auth'.
-    // Esta é a forma correta para Server Actions no App Router.
-    await auth.signIn('credentials', formData); // <--- ESTA É A ALTERAÇÃO CRUCIAL AQUI!
-  } catch (error) {
-    // Trata erros específicos de autenticação do NextAuth.js
-    if (error instanceof AuthError) {
-      switch (error.type) {
-        case 'CredentialsSignin':
-          return 'Invalid credentials.'; // Credenciais inválidas (usuário/senha incorretos)
-        default:
-          return 'Something went wrong.'; // Outros erros de autenticação
-      }
-    }
-    // Re-lança outros tipos de erros que não são de autenticação
-    throw error;
   }
 }

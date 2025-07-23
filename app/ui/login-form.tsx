@@ -1,47 +1,53 @@
-'use client';
+// app/ui/login-form.tsx (VERSÃO FINAL E CORRIGIDA - COM AUTHENTICATE LOCAL)
+'use client'; // <-- ESSENCIAL: Este componente é um Client Component
 
-import { lusitana } from '@/app/ui/fonts';
 import {
   AtSymbolIcon,
   KeyIcon,
   ExclamationCircleIcon,
 } from '@heroicons/react/24/outline';
 import { ArrowRightIcon } from '@heroicons/react/20/solid';
-import { Button } from '@/app/ui/button';
-// Importamos 'useState' do React
-import { useState } from 'react'; // <-- ALTERAÇÃO AQUI
-import { authenticate } from '@/app/lib/actions';
-import { useSearchParams } from 'next/navigation';
+import { Button } from './button';
+import { useFormState, useFormStatus } from 'react-dom'; // Importa hooks
+
+// Importa 'auth' e 'AuthError' diretamente do seu auth.ts principal
+// para serem usados na Server Action local 'authenticate'.
+import { auth } from '@/auth'; 
+import { AuthError } from '@auth/core/errors';
+
+
+// A FUNÇÃO AUTHENTICATE AGORA ESTÁ AQUI, COMO UMA SERVER ACTION LOCAL.
+async function authenticate(
+  prevState: string | undefined,
+  formData: FormData,
+) {
+  'use server'; // <-- ESSENCIAL: Marca esta função como uma Server Action
+
+  try {
+    // Chama a função signIn do NextAuth.js através do objeto 'auth'.
+    await auth.signIn('credentials', formData);
+  } catch (error) {
+    if (error instanceof AuthError) {
+      switch (error.type) {
+        case 'CredentialsSignin':
+          return 'Invalid credentials.';
+        default:
+          return 'Something went wrong.';
+      }
+    }
+    throw error;
+  }
+}
+
 
 export default function LoginForm() {
-  const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
-
-  // Usamos useState para gerenciar a mensagem de erro e o estado de carregamento
-  const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined); // <-- ALTERAÇÃO AQUI
-  const [isPending, setIsPending] = useState(false); // <-- ALTERAÇÃO AQUI para controlar o loading do botão
-
-  // Função que será chamada quando o formulário for submetido
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => { // <-- ALTERAÇÃO AQUI
-    event.preventDefault(); // Previne o comportamento padrão do formulário
-    setIsPending(true); // Define o estado de carregamento como verdadeiro
-
-    const formData = new FormData(event.currentTarget); // Obtém os dados do formulário
-
-    // Chama a Server Action e atualiza o estado da mensagem de erro
-    const result = await authenticate(undefined, formData); // <-- ALTERAÇÃO AQUI: Passa undefined para o primeiro argumento (estado)
-    if (result && typeof result === 'string') { // Verifica se há uma mensagem de erro
-      setErrorMessage(result);
-    } else {
-      setErrorMessage(undefined); // Limpa a mensagem de erro se não houver
-    }
-    setIsPending(false); // Define o estado de carregamento como falso após a ação
-  };
+  // useFormState agora usa a função authenticate definida acima (neste mesmo arquivo)
+  const [errorMessage, dispatch] = useFormState(authenticate, undefined);
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3"> {/* <-- ALTERAÇÃO AQUI: Mudança de 'action' para 'onSubmit' */}
+    <form action={dispatch} className="space-y-3">
       <div className="flex-1 rounded-lg bg-gray-50 px-6 pb-4 pt-8">
-        <h1 className={`${lusitana.className} mb-3 text-2xl`}>
+        <h1 className="mb-3 text-2xl">
           Please log in to continue.
         </h1>
         <div className="w-full">
@@ -85,11 +91,8 @@ export default function LoginForm() {
             </div>
           </div>
         </div>
-        {/* Adiciona o campo hidden para o redirectTo */}
-        <input type="hidden" name="redirectTo" value={callbackUrl} />
-        <Button className="mt-4 w-full" aria-disabled={isPending}>
-          Log in <ArrowRightIcon className="ml-auto h-5 w-5 text-gray-50" />
-        </Button>
+        <LoginButton />
+        {/* Adiciona o display de erro */}
         <div
           className="flex h-8 items-end space-x-1"
           aria-live="polite"
@@ -104,5 +107,15 @@ export default function LoginForm() {
         </div>
       </div>
     </form>
+  );
+}
+
+function LoginButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <Button className="mt-4 w-full" aria-disabled={pending}>
+      Log in <ArrowRightIcon className="ml-auto h-5 w-5 text-gray-50" />
+    </Button>
   );
 }
