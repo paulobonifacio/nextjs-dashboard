@@ -1,4 +1,4 @@
-// app/api/auth/[...nextauth]/route.ts (VERSÃO AUTOCONTIDA E FINAL - COM EXPORTAÇÃO CORRIGIDA)
+// app/api/auth/[...nextauth]/route.ts (CÓDIGO FINAL E CORRIGIDO PARA ROTAS NEXTAUTH)
 
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
@@ -8,9 +8,10 @@ import postgres from 'postgres';
 import type { User } from '@/app/lib/definitions'; // Ajuste o caminho se necessário
 import { authConfig } from '@/auth.config'; // Ajuste o caminho se necessário
 
-// Mantenha as funções de banco de dados e a conexão SQL aqui, pois elas serão usadas localmente.
+// Conexão com o banco de dados
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
+// Função para buscar usuário no banco de dados
 async function getUser(email: string): Promise<User | undefined> {
   try {
     const user = await sql<User[]>`SELECT * FROM users WHERE email=${email}`;
@@ -21,36 +22,40 @@ async function getUser(email: string): Promise<User | undefined> {
   }
 }
 
-// AQUI é a inicialização do NextAuth.js ESPECÍFICA para as rotas API.
+// Inicializa o NextAuth.js.
+// As configurações aqui são específicas para a rota da API de autenticação.
+// É essencial que NextAuth() seja chamado e seu resultado seja exportado corretamente.
 const handler = NextAuth({
-  ...authConfig,
+  ...authConfig, // Inclui as configurações base do seu auth.config.ts
   providers: [
     Credentials({
+      // Define o provedor de credenciais (email/senha)
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
+        // Valida as credenciais com Zod
         const parsedCredentials = z
           .object({ email: z.string().email(), password: z.string().min(6) })
           .safeParse(credentials);
 
         if (parsedCredentials.success) {
           const { email, password } = parsedCredentials.data;
-          const user = await getUser(email);
-          if (!user) return null;
+          const user = await getUser(email); // Busca o usuário no DB
+          if (!user) return null; // Se o usuário não existe, retorna null
+          // Compara a senha fornecida com a senha hash do DB
           const passwordsMatch = await bcrypt.compare(password, user.password);
-          if (passwordsMatch) return user;
+          if (passwordsMatch) return user; // Se as senhas combinam, retorna o usuário
         }
-        console.log('Invalid credentials');
-        return null;
+        console.log('Invalid credentials'); // Log para credenciais inválidas
+        return null; // Retorna null se as credenciais forem inválidas
       },
     }),
   ],
-  // Não precisamos de callbacks aqui se authConfig já os define e não há específicos para a rota
+  // Você não precisa de callbacks adicionais aqui se já estão em auth.config.ts
 });
 
-// EXPORTAÇÃO CORRETA para o App Router:
-// As funções GET e POST são acessadas diretamente do 'handler' retornado por NextAuth
-// MUDANÇA AQUI: de 'export const { GET, POST } = handler;'
-export { handler as GET, handler as POST }; // PARA ESTA SINTAXE!
+// ESSENCIAL: Exporta os handlers GET e POST do NextAuth para o Next.js App Router.
+// O Next.js espera que você exporte explicitamente os métodos HTTP.
+export { handler as GET, handler as POST };
