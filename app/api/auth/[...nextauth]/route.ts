@@ -1,4 +1,4 @@
-// app/api/auth/[...nextauth]/route.ts (VERSÃO AUTOCONTIDA E FINAL)
+// app/api/auth/[...nextauth]/route.ts (VERSÃO AUTOCONTIDA E FINAL - COM EXPORTAÇÃO CORRIGIDA)
 
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
@@ -52,4 +52,5 @@ const handler = NextAuth({
 
 // EXPORTAÇÃO CORRETA para o App Router:
 // As funções GET e POST são acessadas diretamente do 'handler' retornado por NextAuth
-export const { GET, POST } = handler;
+// MUDANÇA AQUI: de 'export const { GET, POST } = handler;'
+export { handler as GET, handler as POST }; // PARA ESTA SINTAXE!
